@@ -2,6 +2,7 @@ package tools.jackson.databind.jsontype.impl;
 
 import java.util.*;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.JsonParser;
 import tools.jackson.core.JsonToken;
@@ -75,7 +76,15 @@ public class AsDeductionTypeDeserializer extends AsPropertyTypeDeserializer
                 Integer bitIndex = propertyBitIndex.get(name);
                 if (bitIndex == null) {
                     bitIndex = nextProperty;
-                    propertyBitIndex.put(name, nextProperty++);
+                    int current = nextProperty++;
+                    propertyBitIndex.put(name, current);
+                    // experiment
+                    var alias = property.getAccessor().getAnnotation(JsonAlias.class);
+                    if (alias != null) {
+                        for (String aliasName : alias.value()) {
+                            propertyBitIndex.put(aliasName, current);
+                        }
+                    }
                 }
                 fingerprint.set(bitIndex);
             }
