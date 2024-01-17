@@ -7,6 +7,8 @@ import com.fasterxml.jackson.annotation.*;
 import tools.jackson.databind.MapperFeature;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -62,6 +64,20 @@ public class PropertyAliasTest
 
         protected PolyWrapperForAlias() { }
         public PolyWrapperForAlias(Object v) { value = v; }
+    }
+
+    @JsonTypeInfo(use = JsonTypeInfo.Id.DEDUCTION)
+    @JsonSubTypes({
+            @JsonSubTypes.Type(value = DeductionBean1.class),
+            @JsonSubTypes.Type(value = DeductionBean2.class)
+    })
+    interface Deduction {
+    }
+
+    record DeductionBean1(int x) implements Deduction {
+    }
+
+    record DeductionBean2(@JsonAlias("Y") int y) implements Deduction {
     }
 
     // [databind#2669]
@@ -124,6 +140,17 @@ public class PropertyAliasTest
         AliasBean bean = (AliasBean) value.value;
         assertEquals("Bob", bean.name);
         assertEquals(17, bean._a);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"y", "Y"})
+    public void testAliasWithPolymorphicDeduction(String field) throws Exception
+    {
+        Deduction value = MAPPER.readValue(a2q(
+                "{'%s': 2 }".formatted(field)
+                ), Deduction.class);
+        assertNotNull(value);
+        assertEquals(2, ((DeductionBean2) value).y());
     }
 
     // [databind#2378]
